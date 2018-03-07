@@ -1,0 +1,56 @@
+r"""
+Python CRUD store.
+"""
+from sqlalchemy import create_engine, Column, String, Integer, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+
+# Data
+Base = declarative_base()
+
+# State
+Resources = {}
+
+# Resources
+{% for name, prop in props.iteritems() -%}
+class {{ name }}(Base):
+  __tablename__ = '{{ name }}'
+  id = Column(Integer, primary_key=True)
+
+Resources['{{name}}'] = {{ name }}
+{% endfor -%}
+
+# Exports
+def getStore():
+  engine = create_engine('{{ builder['store']['engine'] }}')
+  session = sessionmaker()
+  session.configure(bind=engine)
+  Base.metadata.create_all(engine)
+  s = session()
+  import atexit
+  atexit.register(lambda: s.close())
+
+  class Store:
+    def read(self, resource, id):
+      ResourceClass = Resources[resource]
+      return s.query(ResourceClass).filter(ResourceClass.id == id).one()
+
+    def create(self, resource, Data):
+      Resource = Resources[resource](**Data)
+      s.add(Resource)
+      s.commit()
+
+      return Resource
+
+    def update(self, resource, id, Data):
+      ResourceClass = Resources[resource]
+      s.query(ResourceClass).filter(ResourceClass.id == id)
+      Resource.update(Data)
+      s.commit()
+
+      return Resource
+
+    def delete(self, id):
+      Resource = Resources[resource]
+      s.query(Resource).filter(Resource.id == id).delete()
+      s.commit()
