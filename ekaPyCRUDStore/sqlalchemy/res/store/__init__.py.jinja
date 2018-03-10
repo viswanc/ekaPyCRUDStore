@@ -21,7 +21,7 @@ Resources['{{name}}'] = {{ name }}
 {% endfor -%}
 
 # Exports
-def getStore():
+def getStores():
   engine = create_engine('{{ builder['store']['engine'] }}')
   session = sessionmaker()
   session.configure(bind=engine)
@@ -31,26 +31,32 @@ def getStore():
   atexit.register(lambda: s.close())
 
   class Store:
-    def read(self, resource, id):
-      ResourceClass = Resources[resource]
-      return s.query(ResourceClass).filter(ResourceClass.id == id).one()
+    def __init__(self, model):
+      self._model = model
 
-    def create(self, resource, Data):
-      Resource = Resources[resource](**Data)
+    def read(self, id):
+      model = self._model
+      Resource = s.query(model).filter(model.id == id).one()
+      return {column.name: getattr(Resource, column.name) for column in Resource.__table__.columns}
+
+    def create(self, Data):
+      Resource = self._model(**Data)
       s.add(Resource)
       s.commit()
 
-      return Resource
+      return {'id': getattr(Resource, 'id')}
 
-    def update(self, resource, id, Data):
-      ResourceClass = Resources[resource]
-      s.query(ResourceClass).filter(ResourceClass.id == id)
+    def update(self, Data):
+      model = self._model
+      Resource = s.query(model).filter(model.id == Data['id'])
       Resource.update(Data)
       s.commit()
 
-      return Resource
+      return ''
 
     def delete(self, id):
-      Resource = Resources[resource]
-      s.query(Resource).filter(Resource.id == id).delete()
+      model = self._model
+      s.query(model).filter(model.id == id).delete()
       s.commit()
+
+  return {k: Store(v) for k, v in Resources.iteritems()}

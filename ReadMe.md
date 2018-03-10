@@ -10,3 +10,7 @@ Log
 
   * 1317  Scaffolded.
   * 1830  Built a basic template.
+
+* 180308
+
+  * 1023  Restructured.
