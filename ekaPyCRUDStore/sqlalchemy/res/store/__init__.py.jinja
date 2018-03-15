@@ -1,7 +1,7 @@
 r"""
 Python CRUD store.
 """
-from sqlalchemy import create_engine, Column, String, Integer, ForeignKey
+from sqlalchemy import create_engine, Column, Unicode, Integer, Float, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -12,13 +12,16 @@ Base = declarative_base()
 Resources = {}
 
 # Resources
-{% for name, prop in props.iteritems() -%}
-class {{ name }}(Base):
-  __tablename__ = '{{ name }}'
+{% for resName, Resource in props.iteritems() if Resource['persist'] -%}
+class {{ resName }}(Base):
+  __tablename__ = '{{ resName }}'
   id = Column(Integer, primary_key=True)
+  {% for fieldName, Field in Resource['props'].iteritems() if Field['persist'] -%}
+  {{ fieldName }} = Column({{ Field['crud.store.type'] }})
+  {% endfor %}
 
-Resources['{{name}}'] = {{ name }}
-{% endfor -%}
+Resources['{{resName}}'] = {{ resName }}
+{% endfor %}
 
 # Exports
 def getStores():
